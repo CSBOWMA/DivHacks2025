@@ -1,10 +1,16 @@
 import os
-import sqlite3
-
+import psycopg2
+from psycopg2.extras import execute_batch
 from contextlib import contextmanager
 
-BASE_DIR = os.path.dirname(__file__)
-DB_PATH = os.path.join(BASE_DIR, "nessie.db")
+# PostgreSQL connection configuration (from docker-compose.yaml)
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432"),
+    "database": os.getenv("DB_NAME", "divhacks_db"),
+    "user": os.getenv("DB_USER", "divhack_user"),
+    "password": os.getenv("DB_PASSWORD", "divhacks2025")
+}
 
 def init_schema():
     conn = sqlite3.connect(DB_PATH)

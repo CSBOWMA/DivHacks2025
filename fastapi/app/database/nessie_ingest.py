@@ -92,105 +92,101 @@ def ingest_merchants(conn):
 
 
 def ingest_bills(conn):
-    print("→ pulling bills per account")
+    print("→ pulling bills")
+    data = fetch("bills")
     cur = conn.cursor()
-    accounts = cur.execute("SELECT id FROM accounts").fetchall()
-    for (acc_id,) in accounts:
-        data = fetch("bills")
-        for b in data:
-            cur.execute("""
-                INSERT OR IGNORE INTO bills
-                (id, account_id, nickname, creation_date, payment_date,
-                 upcoming_payment_date, recurring_date, payment_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                b["_id"], acc_id,
-                b.get("nickname"),
-                b.get("creation_date"),
-                b.get("payment_date"),
-                b.get("upcoming_payment_date"),
-                b.get("recurring_date"),
-                b.get("payment_amount")
-            ))
+    for b in data:
+        cur.execute("""
+            INSERT OR IGNORE INTO bills
+            (id, account_id, nickname, creation_date, payment_date,
+             upcoming_payment_date, recurring_date, payment_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            b["_id"],
+            b.get("account_id"),
+            b.get("nickname"),
+            b.get("creation_date"),
+            b.get("payment_date"),
+            b.get("upcoming_payment_date"),
+            b.get("recurring_date"),
+            b.get("payment_amount")
+        ))
     conn.commit()
     print("bills loaded")
 
 
 def ingest_deposits(conn):
-    print("→ pulling deposits per account")
+    print("→ pulling deposits")
+    data = fetch("deposits")
     cur = conn.cursor()
-    accounts = cur.execute("SELECT id FROM accounts").fetchall()
-    for (acc_id,) in accounts:
-        data = fetch("deposits")
-        for d in data:
-            cur.execute("""
-                INSERT OR IGNORE INTO deposits
-                (id, account_id, type, amount, payee_id, description,
-                 medium, transaction_date, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                d["_id"], acc_id,
-                d.get("type"),
-                d.get("amount"),
-                d.get("payee_id"),
-                d.get("description"),
-                d.get("medium"),
-                d.get("transaction_date"),
-                d.get("status")
-            ))
+    for d in data:
+        cur.execute("""
+            INSERT OR IGNORE INTO deposits
+            (id, account_id, type, amount, payee_id, description,
+             medium, transaction_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            d["_id"],
+            d.get("account_id"),
+            d.get("type"),
+            d.get("amount"),
+            d.get("payee_id"),
+            d.get("description"),
+            d.get("medium"),
+            d.get("transaction_date"),
+            d.get("status")
+        ))
     conn.commit()
     print("deposits loaded")
 
 
 def ingest_withdrawals(conn):
-    print("→ pulling withdrawals per account")
+    print("→ pulling withdrawals")
+    data = fetch("withdrawals")
     cur = conn.cursor()
-    accounts = cur.execute("SELECT id FROM accounts").fetchall()
-    for (acc_id,) in accounts:
-        data = fetch("withdrawals")
-        for w in data:
-            cur.execute("""
-                INSERT OR IGNORE INTO withdrawals
-                (id, account_id, type, amount, payer_id, payee_id,
-                 description, medium, transaction_date, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                w["_id"], acc_id,
-                w.get("type"),
-                w.get("amount"),
-                w.get("payer_id"),
-                w.get("payee_id"),
-                w.get("description"),
-                w.get("medium"),
-                w.get("transaction_date"),
-                w.get("status")
-            ))
+    for w in data:
+        cur.execute("""
+            INSERT OR IGNORE INTO withdrawals
+            (id, account_id, type, amount, payer_id, payee_id,
+             description, medium, transaction_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            w["_id"],
+            w.get("account_id"),
+            w.get("type"),
+            w.get("amount"),
+            w.get("payer_id"),
+            w.get("payee_id"),
+            w.get("description"),
+            w.get("medium"),
+            w.get("transaction_date"),
+            w.get("status")
+        ))
     conn.commit()
     print("withdrawals loaded")
 
 
 def ingest_transfers(conn):
-    print("→ pulling transfers per account")
+    print("→ pulling transfers")
+    data = fetch("transfers")
     cur = conn.cursor()
-    accounts = cur.execute("SELECT id FROM accounts").fetchall()
-    for (acc_id,) in accounts:
-        data = fetch("transfers")
-        for t in data:
-            cur.execute("""
-                INSERT OR IGNORE INTO transfers
-                (id, account_id, type, amount, payer_id,
-                 description, medium, transaction_date, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                t["_id"], acc_id,
-                t.get("type"),
-                t.get("amount"),
-                t.get("payer_id"),
-                t.get("description"),
-                t.get("medium"),
-                t.get("transaction_date"),
-                t.get("status")
-            ))
+    for t in data:
+        cur.execute("""
+            INSERT OR IGNORE INTO transfers
+            (id, account_id, type, amount, payer_id,
+             description, medium, transaction_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            t["_id"],
+            t.get("account_id"),
+            t.get("type"),
+            t.get("amount"),
+            t.get("payer_id"),
+            t.get("description"),
+            t.get("medium"),
+            t.get("transaction_date"),
+            t.get("status")
+        ))
     conn.commit()
     print("transfers loaded")
 
