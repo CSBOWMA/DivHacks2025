@@ -1,0 +1,27 @@
+# Auth0 Configuration Template
+# Copy this file to .env and fill in your actual values
+
+# Get these values from: https://manage.auth0.com/dashboard
+# Go to Applications > Your Application > Settings
+
+# Your Auth0 domain (e.g., dev-abc123.us.auth0.com)
+AUTH0_DOMAIN=your-domain.auth0.com
+
+# Your Application's Client ID
+AUTH0_CLIENT_ID=your_client_id_here
+
+# Your Application's Client Secret (click "Show" in Auth0 settings)
+AUTH0_CLIENT_SECRET=your_client_secret_here
+
+# Callback URLs
+AUTH0_REDIRECT_URI=http://localhost:8000/callback
+AUTH0_LOGOUT_REDIRECT_URI=http://localhost:8000/
+
+# Session Secret Key (generate with: python3 ../secret.py)
+SECRET_KEY=generate-a-secret-key-using-secret.py
+
+# Required for direct API login (/api/login endpoint - no browser redirects)
+# This is your Auth0 API Identifier (create one in Auth0 Dashboard > Applications > APIs)
+# Or use the default: https://YOUR_DOMAIN/api/v2/
+AUTH0_AUDIENCE=https://your-domain.auth0.com/api/v2/
+
