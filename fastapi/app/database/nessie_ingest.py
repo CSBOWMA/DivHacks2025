@@ -49,22 +49,29 @@ def ingest_accounts(conn):
     print("→ pulling accounts")
     data = fetch("accounts")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for a in data:
-        cur.execute("""
-            INSERT INTO accounts
-            (id, customer_id, type, nickname, balance, rewards)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            a["_id"],
-            a.get("customer_id"),
-            a.get("type"),
-            a.get("nickname"),
-            a.get("balance"),
-            a.get("rewards")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO accounts
+                (id, customer_id, type, nickname, balance, rewards)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                a["_id"],
+                a.get("customer_id"),
+                a.get("type"),
+                a.get("nickname"),
+                a.get("balance"),
+                a.get("rewards")
+            ))
+            loaded += 1
+        except (psycopg2.Error, ValueError):
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print(f"loaded {len(data)} accounts")
+    print(f"loaded {loaded} accounts (skipped {skipped})")
 
 
 def ingest_merchants(conn):
