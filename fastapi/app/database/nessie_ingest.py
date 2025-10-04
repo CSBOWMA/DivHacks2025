@@ -53,22 +53,29 @@ def ingest_accounts(conn):
     print("→ pulling accounts")
     data = fetch("accounts")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for a in data:
-        cur.execute("""
-            INSERT INTO accounts
-            (id, customer_id, type, nickname, balance, rewards)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            a["_id"],
-            a.get("customer_id"),
-            a.get("type"),
-            a.get("nickname"),
-            a.get("balance"),
-            a.get("rewards")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO accounts
+                (id, customer_id, type, nickname, balance, rewards)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                a["_id"],
+                a.get("customer_id"),
+                a.get("type"),
+                a.get("nickname"),
+                a.get("balance"),
+                a.get("rewards")
+            ))
+            loaded += 1
+        except psycopg2.errors.ForeignKeyViolation:
+            skipped += 1
+            conn.rollback()  # Rollback failed transaction
     conn.commit()
-    print(f"loaded {len(data)} accounts")
+    print(f"loaded {loaded} accounts (skipped {skipped} with invalid customer_id)")
 
 
 def ingest_merchants(conn):
@@ -102,104 +109,132 @@ def ingest_bills(conn):
     print("→ pulling bills")
     data = fetch("bills")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for b in data:
-        cur.execute("""
-            INSERT INTO bills
-            (id, account_id, nickname, creation_date, payment_date,
-             upcoming_payment_date, recurring_date, payment_amount)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            b["_id"],
-            b.get("account_id"),
-            b.get("nickname"),
-            b.get("creation_date"),
-            b.get("payment_date"),
-            b.get("upcoming_payment_date"),
-            b.get("recurring_date"),
-            b.get("payment_amount")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO bills
+                (id, account_id, nickname, creation_date, payment_date,
+                 upcoming_payment_date, recurring_date, payment_amount)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                b["_id"],
+                b.get("account_id"),
+                b.get("nickname"),
+                b.get("creation_date"),
+                b.get("payment_date"),
+                b.get("upcoming_payment_date"),
+                b.get("recurring_date"),
+                b.get("payment_amount")
+            ))
+            loaded += 1
+        except psycopg2.errors.ForeignKeyViolation:
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("bills loaded")
+    print(f"loaded {loaded} bills (skipped {skipped} with invalid account_id)")
 
 
 def ingest_deposits(conn):
     print("→ pulling deposits")
     data = fetch("deposits")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for d in data:
-        cur.execute("""
-            INSERT INTO deposits
-            (id, account_id, type, amount, payee_id, description,
-             medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            d["_id"],
-            d.get("account_id"),
-            d.get("type"),
-            d.get("amount"),
-            d.get("payee_id"),
-            d.get("description"),
-            d.get("medium"),
-            d.get("transaction_date"),
-            d.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO deposits
+                (id, account_id, type, amount, payee_id, description,
+                 medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                d["_id"],
+                d.get("account_id"),
+                d.get("type"),
+                d.get("amount"),
+                d.get("payee_id"),
+                d.get("description"),
+                d.get("medium"),
+                d.get("transaction_date"),
+                d.get("status")
+            ))
+            loaded += 1
+        except psycopg2.errors.ForeignKeyViolation:
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("deposits loaded")
+    print(f"loaded {loaded} deposits (skipped {skipped} with invalid account_id)")
 
 
 def ingest_withdrawals(conn):
     print("→ pulling withdrawals")
     data = fetch("withdrawals")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for w in data:
-        cur.execute("""
-            INSERT INTO withdrawals
-            (id, account_id, type, amount, payer_id, payee_id,
-             description, medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            w["_id"],
-            w.get("account_id"),
-            w.get("type"),
-            w.get("amount"),
-            w.get("payer_id"),
-            w.get("payee_id"),
-            w.get("description"),
-            w.get("medium"),
-            w.get("transaction_date"),
-            w.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO withdrawals
+                (id, account_id, type, amount, payer_id, payee_id,
+                 description, medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                w["_id"],
+                w.get("account_id"),
+                w.get("type"),
+                w.get("amount"),
+                w.get("payer_id"),
+                w.get("payee_id"),
+                w.get("description"),
+                w.get("medium"),
+                w.get("transaction_date"),
+                w.get("status")
+            ))
+            loaded += 1
+        except psycopg2.errors.ForeignKeyViolation:
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("withdrawals loaded")
+    print(f"loaded {loaded} withdrawals (skipped {skipped} with invalid account_id)")
 
 
 def ingest_transfers(conn):
     print("→ pulling transfers")
     data = fetch("transfers")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for t in data:
-        cur.execute("""
-            INSERT INTO transfers
-            (id, account_id, type, amount, payer_id,
-             description, medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            t["_id"],
-            t.get("account_id"),
-            t.get("type"),
-            t.get("amount"),
-            t.get("payer_id"),
-            t.get("description"),
-            t.get("medium"),
-            t.get("transaction_date"),
-            t.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO transfers
+                (id, account_id, type, amount, payer_id,
+                 description, medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                t["_id"],
+                t.get("account_id"),
+                t.get("type"),
+                t.get("amount"),
+                t.get("payer_id"),
+                t.get("description"),
+                t.get("medium"),
+                t.get("transaction_date"),
+                t.get("status")
+            ))
+            loaded += 1
+        except psycopg2.errors.ForeignKeyViolation:
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("transfers loaded")
+    print(f"loaded {loaded} transfers (skipped {skipped} with invalid account_id)")
 
 
 # === MAIN ===
