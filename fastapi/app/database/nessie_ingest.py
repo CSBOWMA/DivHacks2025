@@ -1,7 +1,7 @@
 import os
-import sqlite3
 import requests
-from fastapi.app.database.db_init import init_schema, DB_PATH
+import psycopg2
+from fastapi.app.database.db_init import init_schema, get_db_connection, DB_CONFIG
 
 # === CONFIG ===
 API_KEY = "cb0c3712fd83d081cfbf31de4c25fb33"
@@ -27,9 +27,10 @@ def ingest_customers(conn):
     for c in data:
         addr = c.get("address", {})
         cur.execute("""
-            INSERT OR IGNORE INTO customers
+            INSERT INTO customers
             (id, first_name, last_name, street_name, street_number, city, state, zip)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             c["_id"],
             c.get("first_name"),
@@ -50,9 +51,10 @@ def ingest_accounts(conn):
     cur = conn.cursor()
     for a in data:
         cur.execute("""
-            INSERT OR IGNORE INTO accounts
+            INSERT INTO accounts
             (id, customer_id, type, nickname, balance, rewards)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             a["_id"],
             a.get("customer_id"),
@@ -73,9 +75,10 @@ def ingest_merchants(conn):
         addr = m.get("address", {})
         geo = m.get("geocode", {})
         cur.execute("""
-            INSERT OR IGNORE INTO merchants
+            INSERT INTO merchants
             (id, name, street_name, street_number, city, state, zip, lat, lng)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             m["_id"],
             m.get("name"),
@@ -97,10 +100,11 @@ def ingest_bills(conn):
     cur = conn.cursor()
     for b in data:
         cur.execute("""
-            INSERT OR IGNORE INTO bills
+            INSERT INTO bills
             (id, account_id, nickname, creation_date, payment_date,
              upcoming_payment_date, recurring_date, payment_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             b["_id"],
             b.get("account_id"),
@@ -121,10 +125,11 @@ def ingest_deposits(conn):
     cur = conn.cursor()
     for d in data:
         cur.execute("""
-            INSERT OR IGNORE INTO deposits
+            INSERT INTO deposits
             (id, account_id, type, amount, payee_id, description,
              medium, transaction_date, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             d["_id"],
             d.get("account_id"),
@@ -146,10 +151,11 @@ def ingest_withdrawals(conn):
     cur = conn.cursor()
     for w in data:
         cur.execute("""
-            INSERT OR IGNORE INTO withdrawals
+            INSERT INTO withdrawals
             (id, account_id, type, amount, payer_id, payee_id,
              description, medium, transaction_date, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             w["_id"],
             w.get("account_id"),
@@ -172,10 +178,11 @@ def ingest_transfers(conn):
     cur = conn.cursor()
     for t in data:
         cur.execute("""
-            INSERT OR IGNORE INTO transfers
+            INSERT INTO transfers
             (id, account_id, type, amount, payer_id,
              description, medium, transaction_date, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (
             t["_id"],
             t.get("account_id"),
@@ -193,17 +200,19 @@ def ingest_transfers(conn):
 
 # === MAIN ===
 def ingest_all():
+    print("🚀 Starting Nessie data ingestion to PostgreSQL...")
     init_schema()
-    conn = sqlite3.connect(DB_PATH)
-    ingest_customers(conn)
-    ingest_accounts(conn)
-    ingest_merchants(conn)
-    ingest_bills(conn)
-    ingest_deposits(conn)
-    ingest_withdrawals(conn)
-    ingest_transfers(conn)
-    conn.close()
-    print("All Nessie data pulled and stored.")
+
+    with get_db_connection() as conn:
+        ingest_customers(conn)
+        ingest_accounts(conn)
+        ingest_merchants(conn)
+        ingest_bills(conn)
+        ingest_deposits(conn)
+        ingest_withdrawals(conn)
+        ingest_transfers(conn)
+
+    print("✅ All Nessie data pulled and stored in PostgreSQL")
 
 if __name__ == "__main__":
     ingest_all()
