@@ -1,7 +1,11 @@
 import os
+import sys
 import requests
 import psycopg2
-from fastapi.app.database.db_init import init_schema, get_db_connection, DB_CONFIG
+
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(__file__))
+from db_init import init_schema, get_db_connection, DB_CONFIG
 
 # === CONFIG ===
 API_KEY = "cb0c3712fd83d081cfbf31de4c25fb33"
