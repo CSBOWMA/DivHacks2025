@@ -1,2 +1,2 @@
-#fastapi
-fastapi/app/__pycache__/
+/.env
+/.requirements.txt
