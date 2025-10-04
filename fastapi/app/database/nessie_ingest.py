@@ -136,79 +136,100 @@ def ingest_deposits(conn):
     print("→ pulling deposits")
     data = fetch("deposits")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for d in data:
-        cur.execute("""
-            INSERT INTO deposits
-            (id, account_id, type, amount, payee_id, description,
-             medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            d["_id"],
-            d.get("account_id"),
-            d.get("type"),
-            d.get("amount"),
-            d.get("payee_id"),
-            d.get("description"),
-            d.get("medium"),
-            d.get("transaction_date"),
-            d.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO deposits
+                (id, account_id, type, amount, payee_id, description,
+                 medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                d["_id"],
+                d.get("account_id"),
+                d.get("type"),
+                d.get("amount"),
+                d.get("payee_id"),
+                d.get("description"),
+                d.get("medium"),
+                d.get("transaction_date"),
+                d.get("status")
+            ))
+            loaded += 1
+        except (psycopg2.Error, ValueError):
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("deposits loaded")
+    print(f"loaded {loaded} deposits (skipped {skipped})")
 
 
 def ingest_withdrawals(conn):
     print("→ pulling withdrawals")
     data = fetch("withdrawals")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for w in data:
-        cur.execute("""
-            INSERT INTO withdrawals
-            (id, account_id, type, amount, payer_id, payee_id,
-             description, medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            w["_id"],
-            w.get("account_id"),
-            w.get("type"),
-            w.get("amount"),
-            w.get("payer_id"),
-            w.get("payee_id"),
-            w.get("description"),
-            w.get("medium"),
-            w.get("transaction_date"),
-            w.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO withdrawals
+                (id, account_id, type, amount, payer_id, payee_id,
+                 description, medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                w["_id"],
+                w.get("account_id"),
+                w.get("type"),
+                w.get("amount"),
+                w.get("payer_id"),
+                w.get("payee_id"),
+                w.get("description"),
+                w.get("medium"),
+                w.get("transaction_date"),
+                w.get("status")
+            ))
+            loaded += 1
+        except (psycopg2.Error, ValueError):
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("withdrawals loaded")
+    print(f"loaded {loaded} withdrawals (skipped {skipped})")
 
 
 def ingest_transfers(conn):
     print("→ pulling transfers")
     data = fetch("transfers")
     cur = conn.cursor()
+    loaded = 0
+    skipped = 0
     for t in data:
-        cur.execute("""
-            INSERT INTO transfers
-            (id, account_id, type, amount, payer_id,
-             description, medium, transaction_date, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            t["_id"],
-            t.get("account_id"),
-            t.get("type"),
-            t.get("amount"),
-            t.get("payer_id"),
-            t.get("description"),
-            t.get("medium"),
-            t.get("transaction_date"),
-            t.get("status")
-        ))
+        try:
+            cur.execute("""
+                INSERT INTO transfers
+                (id, account_id, type, amount, payer_id,
+                 description, medium, transaction_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                t["_id"],
+                t.get("account_id"),
+                t.get("type"),
+                t.get("amount"),
+                t.get("payer_id"),
+                t.get("description"),
+                t.get("medium"),
+                t.get("transaction_date"),
+                t.get("status")
+            ))
+            loaded += 1
+        except (psycopg2.Error, ValueError):
+            skipped += 1
+            conn.rollback()
     conn.commit()
-    print("transfers loaded")
+    print(f"loaded {loaded} transfers (skipped {skipped})")
 
 
 # === MAIN ===
