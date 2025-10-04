@@ -7,7 +7,7 @@ load_dotenv()
 
 def add_middleware(app):
 
-    # Use a proper secret key for session middleware
+
     secret_key = os.getenv("SECRET_KEY")
     if not secret_key:
         secret_key = "your-secret-key-change-in-production"

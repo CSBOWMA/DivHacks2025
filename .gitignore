@@ -1,2 +1,7 @@
+<<<<<<< Updated upstream
 #fastapi
 fastapi/app/__pycache__/
+=======
+/.env
+/.requirements.txtr
+>>>>>>> Stashed changes
