@@ -1,0 +1,25 @@
+version: '3.8' # Specify the Docker Compose file format version
+
+services:
+  db: # This defines a service named 'db'
+    build:
+      context: ./postgres # Tells Docker Compose to look for the Dockerfile in the ./postgres directory
+    container_name: divhacks_postgres_db # A custom name for your container
+    restart: always # Always restart the container if it stops
+    environment:
+      # These environment variables align with your init.sql and Dockerfile.
+      # They are essential for the PostgreSQL container to start correctly
+      # and for your application to connect.
+      POSTGRES_USER: divhack_user
+      POSTGRES_PASSWORD: divhacks2025
+      POSTGRES_DB: divhacks_db
+    ports:
+      - "5432:5432" # Map host port 5432 to container port 5432.
+                   # This allows you to connect to the database from your host machine.
+    volumes:
+      # Mount a named volume called 'db_data' to the PostgreSQL data directory.
+      # This ensures your database data persists even if the container is recreated.
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data: # Define the named volume. Docker will manage its creation and storage.
