@@ -36,8 +36,8 @@ def init_schema():
         customer_id TEXT,
         type TEXT,
         nickname TEXT,
-        balance DECIMAL(15,2),
-        rewards DECIMAL(10,2),
+        balance NUMERIC,
+        rewards NUMERIC,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE
     );
@@ -53,8 +53,8 @@ def init_schema():
         city TEXT,
         state TEXT,
         zip TEXT,
-        lat DECIMAL(10,8),
-        lng DECIMAL(11,8),
+        lat NUMERIC,
+        lng NUMERIC,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
     """)
@@ -68,7 +68,7 @@ def init_schema():
         payment_date TIMESTAMP,
         upcoming_payment_date TIMESTAMP,
         recurring_date INTEGER,
-        payment_amount DECIMAL(15,2),
+        payment_amount NUMERIC,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
     );
@@ -80,7 +80,7 @@ def init_schema():
         id TEXT PRIMARY KEY,
         account_id TEXT,
         type TEXT,
-        amount DECIMAL(15,2),
+        amount NUMERIC,
         payee_id TEXT,
         description TEXT,
         medium TEXT,
@@ -98,7 +98,7 @@ def init_schema():
         id TEXT PRIMARY KEY,
         account_id TEXT,
         type TEXT,
-        amount DECIMAL(15,2),
+        amount NUMERIC,
         payer_id TEXT,
         payee_id TEXT,
         description TEXT,
@@ -117,7 +117,7 @@ def init_schema():
         id TEXT PRIMARY KEY,
         account_id TEXT,
         type TEXT,
-        amount DECIMAL(15,2),
+        amount NUMERIC,
         payer_id TEXT,
         description TEXT,
         medium TEXT,

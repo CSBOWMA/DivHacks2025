@@ -71,11 +71,11 @@ def ingest_accounts(conn):
                 a.get("rewards")
             ))
             loaded += 1
-        except psycopg2.errors.ForeignKeyViolation:
+        except psycopg2.Error:
             skipped += 1
-            conn.rollback()  # Rollback failed transaction
+            conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} accounts (skipped {skipped} with invalid customer_id)")
+    print(f"loaded {loaded} accounts (skipped {skipped} with invalid data)")
 
 
 def ingest_merchants(conn):
@@ -130,11 +130,11 @@ def ingest_bills(conn):
                 b.get("payment_amount")
             ))
             loaded += 1
-        except psycopg2.errors.ForeignKeyViolation:
+        except psycopg2.Error:
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} bills (skipped {skipped} with invalid account_id)")
+    print(f"loaded {loaded} bills (skipped {skipped} with invalid data)")
 
 
 def ingest_deposits(conn):
@@ -163,11 +163,11 @@ def ingest_deposits(conn):
                 d.get("status")
             ))
             loaded += 1
-        except psycopg2.errors.ForeignKeyViolation:
+        except (psycopg2.Error, ValueError):
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} deposits (skipped {skipped} with invalid account_id)")
+    print(f"loaded {loaded} deposits (skipped {skipped} with invalid data)")
 
 
 def ingest_withdrawals(conn):
@@ -197,11 +197,11 @@ def ingest_withdrawals(conn):
                 w.get("status")
             ))
             loaded += 1
-        except psycopg2.errors.ForeignKeyViolation:
+        except (psycopg2.Error, ValueError):
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} withdrawals (skipped {skipped} with invalid account_id)")
+    print(f"loaded {loaded} withdrawals (skipped {skipped} with invalid data)")
 
 
 def ingest_transfers(conn):
@@ -230,11 +230,11 @@ def ingest_transfers(conn):
                 t.get("status")
             ))
             loaded += 1
-        except psycopg2.errors.ForeignKeyViolation:
+        except (psycopg2.Error, ValueError):
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} transfers (skipped {skipped} with invalid account_id)")
+    print(f"loaded {loaded} transfers (skipped {skipped} with invalid data)")
 
 
 # === MAIN ===
