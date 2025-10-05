@@ -1,7 +1,7 @@
 import os
 import requests
 import psycopg2
-from fastapi.app.database.db_init import init_schema, get_db_connection, DB_CONFIG
+from app.database.db_init import init_schema, get_db_connection, DB_CONFIG
 
 # === CONFIG ===
 API_KEY = "cb0c3712fd83d081cfbf31de4c25fb33"
