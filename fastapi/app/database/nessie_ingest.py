@@ -16,6 +16,16 @@ def fetch(endpoint):
         data = data["results"]
     return data
 
+def safe_coord(val):
+    try:
+        v = float(val)
+        # Clamp to valid Earth coordinate range
+        if abs(v) > 180:
+            return None
+        return v
+    except (TypeError, ValueError):
+        return None
+
 # === INGEST FUNCTIONS ===
 
 def ingest_customers(conn):
@@ -78,27 +88,38 @@ def ingest_merchants(conn):
     print("→ pulling merchants")
     data = fetch("merchants")
     cur = conn.cursor()
+    inserted, skipped = 0, 0
+
     for m in data:
         addr = m.get("address", {})
         geo = m.get("geocode", {})
-        cur.execute("""
-            INSERT INTO merchants
-            (id, name, street_name, street_number, city, state, zip, lat, lng)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (
-            m["_id"],
-            m.get("name"),
-            addr.get("street_name"),
-            addr.get("street_number"),
-            addr.get("city"),
-            addr.get("state"),
-            addr.get("zip"),
-            geo.get("lat"),
-            geo.get("lng")
-        ))
+        lat = safe_coord(geo.get("lat"))
+        lng = safe_coord(geo.get("lng"))
+
+        try:
+            cur.execute("""
+                INSERT INTO merchants
+                (id, name, street_name, street_number, city, state, zip, lat, lng)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                m["_id"],
+                m.get("name"),
+                addr.get("street_name"),
+                addr.get("street_number"),
+                addr.get("city"),
+                addr.get("state"),
+                addr.get("zip"),
+                lat,
+                lng
+            ))
+            inserted += 1
+        except Exception as e:
+            conn.rollback()
+            skipped += 1
+
     conn.commit()
-    print(f"loaded {len(data)} merchants")
+    print(f"loaded {inserted} merchants (skipped {skipped})")
 
 
 def ingest_bills(conn):
