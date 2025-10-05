@@ -36,8 +36,8 @@ def init_schema():
         customer_id TEXT,
         type TEXT,
         nickname TEXT,
-        balance DECIMAL(15,2),
-        rewards DECIMAL(10,2),
+        balance NUMERIC,
+        rewards NUMERIC,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE
     );
