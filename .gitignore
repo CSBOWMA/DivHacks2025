@@ -1,8 +1,13 @@
 #fastapi
 fastapi/app/__pycache__/
+fastapi/__pycache__/
+fastapi/app/database/__pycache__/
+fastapi/app/routers/__pycache__/
+
 
 frontend/.env*
 fastapi/.env*
+
 
 #IDE
 .idea/
