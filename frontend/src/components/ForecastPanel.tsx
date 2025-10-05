@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAccountsMock } from '@/hooks/useAccountsMock'; // Import your actual hook
-import { useAccountForecast, useAggregateForecast } from '@/hooks/useForecastMock'; // Change to useForecast for real data
+import { useAccountForecast, useAggregateForecast } from '@/hooks/useForecast'; // Change to useForecast for real data
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,

@@ -9,9 +9,9 @@ interface AnalyticsToolSwitcherProps {
 
 const tools: { id: AnalyticsTool; label: string; icon: string; disabled?: boolean }[] = [
     { id: 'accounts', label: 'Accounts', icon: '💳' },
-    { id: 'transactions', label: 'Transactions', icon: '💸', disabled: true },
     { id: 'insights', label: 'Graph Analytics', icon: '📊' },
     { id: 'forecast', label: 'Forecast', icon: '🔮' },
+    { id: 'transactions', label: 'Transactions', icon: '💸', disabled: true },
     { id: 'reports', label: 'Reports', icon: '📈', disabled: true },
 ];
 

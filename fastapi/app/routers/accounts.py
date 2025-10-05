@@ -681,7 +681,146 @@ def get_recent_activity(
 @router.get("/{account_id}/transaction-summary")
 def get_transaction_summary(account_id: str):
     """
-    Get aggregated transaction summary for a single account.
+    Get all transactions and calculate summary statistics for an account.
 
-    Returns all transactions with appropriate type labels and calculates metrics
-    including total deposits, withdrawals, transfers in/out, and balance verification
+    Returns transactions grouped by type with calculated balance,
+    actual balance, and any discrepancies.
+    """
+
+    query = """
+    (
+        SELECT
+            'deposit' as type,
+            id,
+            account_id,
+            amount,
+            transaction_date as date,
+            description,
+            status
+        FROM deposits
+        WHERE account_id = %s
+            AND status IN ('completed', 'executed')
+    )
+    UNION ALL
+    (
+        SELECT
+            'withdrawal' as type,
+            id,
+            account_id,
+            amount,
+            transaction_date as date,
+            description,
+            status
+        FROM withdrawals
+        WHERE account_id = %s
+            AND status IN ('completed', 'executed')
+    )
+    UNION ALL
+    (
+        SELECT
+            'transfer_out' as type,
+            id,
+            payer_id as account_id,
+            amount,
+            transaction_date as date,
+            description,
+            status
+        FROM transfers
+        WHERE payer_id = %s
+            AND status IN ('completed', 'executed')
+    )
+    UNION ALL
+    (
+        SELECT
+            'transfer_in' as type,
+            id,
+            payee_id as account_id,
+            amount,
+            transaction_date as date,
+            description,
+            status
+        FROM transfers
+        WHERE payee_id = %s
+            AND status IN ('completed', 'executed')
+    )
+    ORDER BY date DESC
+    """
+
+    # Query to get actual account balance
+    balance_query = "SELECT balance FROM accounts WHERE id = %s"
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Get actual account balance
+            cur.execute(balance_query, (account_id,))
+            balance_row = cur.fetchone()
+
+            if not balance_row:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            actual_balance = float(balance_row[0]) if balance_row[0] else 0.0
+
+            # Get all transactions
+            cur.execute(query, (account_id, account_id, account_id, account_id))
+            rows = cur.fetchall()
+
+            transactions = []
+            total_deposits = 0.0
+            total_withdrawals = 0.0
+            total_transfers_in = 0.0
+            total_transfers_out = 0.0
+
+            for row in rows:
+                transaction_type = row[0]
+                amount = float(row[3]) if row[3] else 0.0
+
+                transaction = {
+                    "id": row[1],
+                    "account_id": row[2],
+                    "type": transaction_type,
+                    "amount": amount,
+                    "date": str(row[4]) if row[4] else None,
+                    "description": row[5] or "",
+                    "status": row[6]
+                }
+                transactions.append(transaction)
+
+                # Calculate totals by type
+                if transaction_type == "deposit":
+                    total_deposits += amount
+                elif transaction_type == "withdrawal":
+                    total_withdrawals += amount
+                elif transaction_type == "transfer_in":
+                    total_transfers_in += amount
+                elif transaction_type == "transfer_out":
+                    total_transfers_out += amount
+
+            # Calculate the balance based on transactions
+            calculated_balance = (total_deposits + total_transfers_in) - (total_withdrawals + total_transfers_out)
+
+            # Calculate discrepancy
+            discrepancy = actual_balance - calculated_balance
+            has_discrepancy = abs(discrepancy) > 0.01  # Allow for floating point precision
+
+            summary = {
+                "total_deposits": total_deposits,
+                "total_withdrawals": total_withdrawals,
+                "total_transfers_in": total_transfers_in,
+                "total_transfers_out": total_transfers_out,
+                "calculated_balance": calculated_balance,
+                "actual_balance": actual_balance,
+                "discrepancy": discrepancy,
+                "has_discrepancy": has_discrepancy
+            }
+
+            return {
+                "transactions": transactions,
+                "summary": summary
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
