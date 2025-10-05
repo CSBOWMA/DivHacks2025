@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     type TEXT,
     amount NUMERIC,
     payer_id TEXT,
+    payee_id TEXT,
     description TEXT,
     medium TEXT,
     transaction_date TIMESTAMP,

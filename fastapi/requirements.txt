@@ -7,4 +7,4 @@ itsdangerous==2.2.0
 passlib[bcrypt]==1.7.4
 psycopg2-binary==2.9.10
 neo4j==5.25.0
-
+requests

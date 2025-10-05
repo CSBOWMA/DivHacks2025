@@ -132,7 +132,7 @@ def init_schema():
 
     conn.commit()
     conn.close()
-    print("✅ PostgreSQL schema initialized")
+    print("PostgreSQL schema initialized")
 
 @contextmanager
 def get_db_connection():

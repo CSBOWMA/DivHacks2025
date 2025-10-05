@@ -13,14 +13,47 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - divhacks_network
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      #- db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U divhack_user -d divhacks_db"]
+      test: [ "CMD-SHELL", "pg_isready -U divhack_user -d divhacks_db -h db || exit 1" ]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
+
+    networks:
+      - divhacks_network   # ✅ THIS IS REQUIRED
+
+
+  nessie_ingest:
+    build:
+      context: ./fastapi
+    container_name: divhacks_nessie_ingest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/app
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=divhacks_db
+      - DB_USER=divhack_user
+      - DB_PASSWORD=divhacks2025
+    networks:
+      - divhacks_network
+    command: >
+      sh -c '
+        echo "⏳ Waiting for Postgres ($$DB_HOST:$$DB_PORT)...";
+        until pg_isready -h $$DB_HOST -p $$DB_PORT -U $$DB_USER > /dev/null 2>&1; do
+          echo "   ↪ still waiting..."; sleep 2;
+        done;
+        echo "✅ Postgres is ready! Starting ingestion...";
+        python3 -m app.database.nessie_ingest;
+        echo "✅ Nessie ingestion complete.";
+      '
+    restart: "no"
+
 
   neo4j:
     build:
@@ -42,7 +75,8 @@ services:
       test: ["CMD-SHELL", "cypher-shell -u neo4j -p testpassword 'RETURN 1'"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 15
+      start_period: 60s
 
   fastapi:
     build:
@@ -58,35 +92,36 @@ services:
         condition: service_healthy
     networks:
       - divhacks_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    environment:
+      - PYTHONPATH=/app
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=divhacks_db
+      - DB_USER=divhack_user
+      - DB_PASSWORD=divhacks2025
 
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
     container_name: divhacks_frontend
     restart: always
     ports:
       - "3000:3000"
+    env_file:
+      - ./frontend/.env
     environment:
-      # Read from frontend/.env and pass to container
-      NEXT_PUBLIC_AUTH0_DOMAIN: ${NEXT_PUBLIC_AUTH0_DOMAIN}
-      NEXT_PUBLIC_AUTH0_CLIENT_ID: ${NEXT_PUBLIC_AUTH0_CLIENT_ID}
-      NEXT_PUBLIC_AUTH0_AUDIENCE: ${NEXT_PUBLIC_AUTH0_AUDIENCE}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: production
     depends_on:
       - fastapi
     networks:
       - divhacks_network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
+
 
 volumes:
   db_data:
