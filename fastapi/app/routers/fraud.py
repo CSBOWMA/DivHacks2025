@@ -121,3 +121,94 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.get("/scan-all")
+def scan_all_accounts(max_depth: int = 5, min_amount: float = 0, limit: int = 100):
+    """
+    Scan all accounts for circular transfer fraud.
+
+    Returns accounts that have circular money flows detected.
+
+    Query parameters:
+    - max_depth: Maximum chain length (default 5)
+    - min_amount: Minimum transaction amount (default 0)
+    - limit: Max number of fraudulent accounts to return (default 100)
+    """
+
+    query = """
+    WITH RECURSIVE transfer_chain AS (
+        -- Base case: all transfers
+        SELECT
+            t.id,
+            t.account_id,
+            t.payer_id,
+            t.amount,
+            t.transaction_date,
+            1 as depth,
+            ARRAY[t.account_id] as path,
+            ARRAY[t.id] as transfer_path,
+            t.amount as running_total,
+            t.account_id as origin_account
+        FROM transfers t
+        WHERE t.amount >= %s
+            AND t.status = 'completed'
+
+        UNION ALL
+
+        -- Recursive case: follow the chain
+        SELECT
+            t.id,
+            t.account_id,
+            t.payer_id,
+            t.amount,
+            t.transaction_date,
+            tc.depth + 1,
+            tc.path || t.account_id,
+            tc.transfer_path || t.id,
+            tc.running_total + t.amount,
+            tc.origin_account
+        FROM transfers t
+        INNER JOIN transfer_chain tc ON t.account_id = tc.payer_id
+        WHERE
+            tc.depth < %s
+            AND NOT (t.account_id = ANY(tc.path))
+            AND t.amount >= %s
+            AND t.status = 'completed'
+    )
+    SELECT
+        origin_account,
+        COUNT(DISTINCT transfer_path) as circular_count,
+        SUM(running_total) as total_circular_amount,
+        MAX(depth) as max_chain_length
+    FROM transfer_chain
+    WHERE payer_id = origin_account  -- Circular: back to origin
+    GROUP BY origin_account
+    ORDER BY circular_count DESC, total_circular_amount DESC
+    LIMIT %s;
+    """
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(query, (min_amount, max_depth, min_amount, limit))
+            rows = cur.fetchall()
+
+            fraudulent_accounts = []
+            for row in rows:
+                fraudulent_accounts.append({
+                    "account_id": row[0],
+                    "circular_flow_count": row[1],
+                    "total_circular_amount": float(row[2]) if row[2] else 0.0,
+                    "max_chain_length": row[3],
+                    "risk_level": "HIGH" if row[1] > 2 else "MEDIUM"
+                })
+
+            return {
+                "scanned": True,
+                "fraudulent_accounts_found": len(fraudulent_accounts),
+                "accounts": fraudulent_accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
