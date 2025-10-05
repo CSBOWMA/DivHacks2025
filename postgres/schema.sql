@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
     customer_id TEXT REFERENCES customers(id),
-    type TEXT,
+    account_type TEXT,
     nickname TEXT,
     balance NUMERIC,
     rewards NUMERIC
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS bills (
 CREATE TABLE IF NOT EXISTS deposits (
     id TEXT PRIMARY KEY,
     account_id TEXT REFERENCES accounts(id),
-    type TEXT,
+    deposit_type TEXT,
     amount NUMERIC,
     payee_id TEXT,
     description TEXT,
