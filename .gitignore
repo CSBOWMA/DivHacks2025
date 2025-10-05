@@ -1,6 +1,9 @@
 #fastapi
 fastapi/app/__pycache__/
 
+frontend/.env*
+fastapi/.env*
+
 #IDE
 .idea/
 #environment
