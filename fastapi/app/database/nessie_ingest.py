@@ -26,9 +26,20 @@ def safe_coord(val):
     except (TypeError, ValueError):
         return None
 
+def table_has_data(conn, table_name):
+    """Check if a table has any rows"""
+    cur = conn.cursor()
+    cur.execute(f"SELECT COUNT(*) FROM {table_name}")
+    count = cur.fetchone()[0]
+    return count > 0
+
 # === INGEST FUNCTIONS ===
 
 def ingest_customers(conn):
+    if table_has_data(conn, "customers"):
+        print("⏭️  customers table already has data, skipping")
+        return
+
     print("→ pulling customers")
     data = fetch("customers")
     if isinstance(data, dict) and "results" in data:
@@ -52,10 +63,14 @@ def ingest_customers(conn):
             addr.get("zip")
         ))
     conn.commit()
-    print(f"loaded {len(data)} customers")
+    print(f"✅ loaded {len(data)} customers")
 
 
 def ingest_accounts(conn):
+    if table_has_data(conn, "accounts"):
+        print("⏭️  accounts table already has data, skipping")
+        return
+
     print("→ pulling accounts")
     data = fetch("accounts")
     cur = conn.cursor()
@@ -81,10 +96,14 @@ def ingest_accounts(conn):
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} accounts (skipped {skipped})")
+    print(f"✅ loaded {loaded} accounts (skipped {skipped})")
 
 
 def ingest_merchants(conn):
+    if table_has_data(conn, "merchants"):
+        print("⏭️  merchants table already has data, skipping")
+        return
+
     print("→ pulling merchants")
     data = fetch("merchants")
     cur = conn.cursor()
@@ -119,10 +138,14 @@ def ingest_merchants(conn):
             skipped += 1
 
     conn.commit()
-    print(f"loaded {inserted} merchants (skipped {skipped})")
+    print(f"✅ loaded {inserted} merchants (skipped {skipped})")
 
 
 def ingest_bills(conn):
+    if table_has_data(conn, "bills"):
+        print("⏭️  bills table already has data, skipping")
+        return
+
     print("→ pulling bills")
     data = fetch("bills")
     cur = conn.cursor()
@@ -153,10 +176,14 @@ def ingest_bills(conn):
             skipped += 1
 
     conn.commit()
-    print(f"loaded {inserted} bills (skipped {skipped})")
+    print(f"✅ loaded {inserted} bills (skipped {skipped})")
 
 
 def ingest_deposits(conn):
+    if table_has_data(conn, "deposits"):
+        print("⏭️  deposits table already has data, skipping")
+        return
+
     print("→ pulling deposits")
     data = fetch("deposits")
     cur = conn.cursor()
@@ -173,8 +200,8 @@ def ingest_deposits(conn):
                 ON CONFLICT (id) DO NOTHING
             """, (
                 d["_id"],
-                d.get("account_id"),   # ← new field to match DB
-                d.get("type"),         # ← renamed from deposit_type
+                d.get("account_id"),
+                d.get("type"),
                 d.get("amount"),
                 d.get("payee_id"),
                 d.get("description"),
@@ -191,8 +218,11 @@ def ingest_deposits(conn):
     print(f"✅ loaded {loaded} deposits (skipped {skipped})")
 
 
-
 def ingest_withdrawals(conn):
+    if table_has_data(conn, "withdrawals"):
+        print("⏭️  withdrawals table already has data, skipping")
+        return
+
     print("→ pulling withdrawals")
     data = fetch("withdrawals")
     cur = conn.cursor()
@@ -221,10 +251,14 @@ def ingest_withdrawals(conn):
             skipped += 1
             conn.rollback()
     conn.commit()
-    print(f"loaded {loaded} withdrawals (skipped {skipped})")
+    print(f"✅ loaded {loaded} withdrawals (skipped {skipped})")
 
 
 def ingest_transfers(conn):
+    if table_has_data(conn, "transfers"):
+        print("⏭️  transfers table already has data, skipping")
+        return
+
     print("→ pulling transfers")
     data = fetch("transfers")
     cur = conn.cursor()
@@ -266,7 +300,6 @@ def ingest_transfers(conn):
 
     conn.commit()
     print(f"✅ loaded {loaded} transfers (skipped {skipped})")
-
 
 
 # === MAIN ===
