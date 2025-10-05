@@ -1,8 +1,6 @@
 'use client';
 
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function DashboardPage() {
@@ -15,7 +13,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.name || user?.email}!
                     </h1>
                     <p className="text-gray-600">
-                        Here's your financial analytics dashboard
+                        Here&pos;s your financial analytics dashboard
                     </p>
                 </div>
 

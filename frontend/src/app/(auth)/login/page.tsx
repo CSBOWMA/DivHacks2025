@@ -93,7 +93,7 @@ export default function LoginPage() {
 
                     {/* Footer */}
                     <p className="text-center text-sm text-gray-500 mt-6">
-                        Don't have access?{' '}
+                        Don&apos;t have access?{' '}
                         <a href="mailto:support@yourcompany.com" className="text-blue-600 hover:text-blue-700 font-medium">
                             Contact Support
                         </a>

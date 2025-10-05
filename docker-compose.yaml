@@ -1,25 +1,98 @@
-version: '3.8' # Specify the Docker Compose file format version
+version: '3.8'
 
 services:
-  db: # This defines a service named 'db'
+  db:
     build:
-      context: ./postgres # Tells Docker Compose to look for the Dockerfile in the ./postgres directory
-    container_name: divhacks_postgres_db # A custom name for your container
-    restart: always # Always restart the container if it stops
+      context: ./postgres
+    container_name: divhacks_postgres_db
+    restart: always
     environment:
-      # These environment variables align with your init.sql and Dockerfile.
-      # They are essential for the PostgreSQL container to start correctly
-      # and for your application to connect.
       POSTGRES_USER: divhack_user
       POSTGRES_PASSWORD: divhacks2025
       POSTGRES_DB: divhacks_db
     ports:
-      - "5432:5432" # Map host port 5432 to container port 5432.
-                   # This allows you to connect to the database from your host machine.
+      - "5432:5432"
     volumes:
-      # Mount a named volume called 'db_data' to the PostgreSQL data directory.
-      # This ensures your database data persists even if the container is recreated.
       - db_data:/var/lib/postgresql/data
+    networks:
+      - divhacks_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U divhack_user -d divhacks_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    build:
+      context: ./neo4j
+    container_name: divhacks_neo4j
+    restart: always
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/divhacks2025
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - divhacks_network
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p divhacks2025 'RETURN 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fastapi:
+    build:
+      context: ./fastapi
+    container_name: divhacks_fastapi
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    networks:
+      - divhacks_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: divhacks_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # Read from frontend/.env and pass to container
+      NEXT_PUBLIC_AUTH0_DOMAIN: ${NEXT_PUBLIC_AUTH0_DOMAIN}
+      NEXT_PUBLIC_AUTH0_CLIENT_ID: ${NEXT_PUBLIC_AUTH0_CLIENT_ID}
+      NEXT_PUBLIC_AUTH0_AUDIENCE: ${NEXT_PUBLIC_AUTH0_AUDIENCE}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NODE_ENV: production
+    depends_on:
+      - fastapi
+    networks:
+      - divhacks_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  db_data: # Define the named volume. Docker will manage its creation and storage.
+  db_data:
+  neo4j_data:
+  neo4j_logs:
+
+networks:
+  divhacks_network:
+    driver: bridge
