@@ -445,3 +445,103 @@ def get_account_transactions(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.get("/{account_id}/recent-activity")
+def get_recent_activity(
+    account_id: str,
+    days: int = Query(default=30, ge=1, le=365, description="Number of days to look back")
+):
+    """
+    Get recent transaction activity for an account.
+
+    Returns all deposits, withdrawals, and transfers from the last N days,
+    sorted by most recent first.
+
+    Query parameters:
+    - days: Number of days to look back (default 30, max 365)
+    """
+
+    query = """
+    (
+        SELECT
+            'deposit' as type,
+            id,
+            account_id,
+            amount,
+            transaction_date,
+            description,
+            status,
+            payee_id,
+            medium
+        FROM deposits
+        WHERE account_id = %s
+            AND transaction_date >= NOW() - INTERVAL '%s days'
+            AND status = 'completed'
+    )
+    UNION ALL
+    (
+        SELECT
+            'withdrawal' as type,
+            id,
+            account_id,
+            amount,
+            transaction_date,
+            description,
+            status,
+            payee_id,
+            medium
+        FROM withdrawals
+        WHERE account_id = %s
+            AND transaction_date >= NOW() - INTERVAL '%s days'
+            AND status = 'completed'
+    )
+    UNION ALL
+    (
+        SELECT
+            'transfer' as type,
+            id,
+            account_id,
+            amount,
+            transaction_date,
+            description,
+            status,
+            payer_id as payee_id,
+            medium
+        FROM transfers
+        WHERE account_id = %s
+            AND transaction_date >= NOW() - INTERVAL '%s days'
+            AND status = 'completed'
+    )
+    ORDER BY transaction_date DESC
+    """
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(query, (account_id, days, account_id, days, account_id, days))
+            rows = cur.fetchall()
+
+            transactions = []
+            for row in rows:
+                transactions.append({
+                    "type": row[0],
+                    "id": row[1],
+                    "account_id": row[2],
+                    "amount": float(row[3]) if row[3] else 0.0,
+                    "transaction_date": str(row[4]) if row[4] else None,
+                    "description": row[5],
+                    "status": row[6],
+                    "payee_id": row[7],
+                    "medium": row[8]
+                })
+
+            return {
+                "account_id": account_id,
+                "days": days,
+                "activity_count": len(transactions),
+                "transactions": transactions
+            }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
