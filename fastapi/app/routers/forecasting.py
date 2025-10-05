@@ -181,7 +181,7 @@ def forecast_total_deposits(
                 DATE(transaction_date) as date,
                 SUM(amount) as total_deposits
             FROM deposits
-            WHERE status = 'completed'
+            WHERE status = 'executed'
                 AND transaction_date IS NOT NULL
                 AND amount IS NOT NULL
             GROUP BY DATE(transaction_date)
