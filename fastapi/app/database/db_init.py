@@ -144,6 +144,14 @@ def get_db_connection():
         conn.close()
 
 
+def count_customers_with_accounts():
+    """Count how many customers have accounts."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(DISTINCT customer_id) FROM accounts;")
+        result = cur.fetchone()
+        return result[0] if result else 0
+
 # === 4. CLI Run ===
 if __name__ == "__main__":
     init_schema()
@@ -154,3 +162,7 @@ if __name__ == "__main__":
     cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
     print("📋 Tables:", [t[0] for t in cur.fetchall()])
     conn.close()
+
+    # Run the customer count query
+    customer_count = count_customers_with_accounts()
+    print(f"📊 Number of customers with accounts: {customer_count}")

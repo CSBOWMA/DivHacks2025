@@ -32,7 +32,6 @@ def table_has_data(conn, table_name):
     cur.execute(f"SELECT COUNT(*) FROM {table_name}")
     count = cur.fetchone()[0]
     return count > 0
-
 # === INGEST FUNCTIONS ===
 
 def ingest_customers(conn):

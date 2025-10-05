@@ -64,7 +64,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      - NEO4J_AUTH=neo4j/divhacks2025
+      - NEO4J_AUTH=neo4j/testpassword
       - NEO4J_PLUGINS=["apoc"]
     volumes:
       - neo4j_data:/data
@@ -72,7 +72,7 @@ services:
     networks:
       - divhacks_network
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p divhacks2025 'RETURN 1'"]
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p testpassword 'RETURN 1'"]
       interval: 10s
       timeout: 5s
       retries: 15
