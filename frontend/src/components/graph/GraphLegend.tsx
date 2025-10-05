@@ -5,22 +5,66 @@ export default function GraphLegend() {
         <Panel position="top-left" className="bg-white rounded-lg shadow-lg p-4 border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Legend</h3>
             <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-blue-600 bg-blue-100"></div>
-                    <span>Start Node</span>
+                {/* Node Types */}
+                <div className="pb-2 border-b border-gray-200">
+                    <p className="text-gray-500 font-medium mb-2">Node Types</p>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full border-2 border-blue-600 bg-blue-100 flex items-center justify-center text-xs">
+                                🎯
+                            </div>
+                            <span>Start Node</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full border-2 border-green-600 bg-green-100 flex items-center justify-center text-xs">
+                                🏁
+                            </div>
+                            <span>End Node</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full border-2 border-gray-400 bg-gray-100"></div>
+                            <span>Regular Node</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-green-600 bg-green-100"></div>
-                    <span>End Node</span>
+
+                {/* Account Types */}
+                <div className="pb-2 border-b border-gray-200">
+                    <p className="text-gray-500 font-medium mb-2">Account Types</p>
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <span>💳</span>
+                            <span>Checking</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span>🏦</span>
+                            <span>Savings</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span>💼</span>
+                            <span>Business</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span>📈</span>
+                            <span>Investment</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-600 bg-gray-100"></div>
-                    <span>Intermediate Node</span>
-                </div>
-                <div className="border-t border-gray-200 my-2"></div>
+
+                {/* Visual Encoding */}
                 <div>
-                    <p className="text-gray-600 mb-1">Node Size = Balance</p>
-                    <p className="text-gray-600">Edge Width = Transaction Amount</p>
+                    <p className="text-gray-500 font-medium mb-2">Visual Encoding</p>
+                    <div className="space-y-1">
+                        <div className="text-gray-600">
+                            <span className="font-medium">Node Size</span> = Balance
+                        </div>
+                        <div className="text-gray-600">
+                            <span className="font-medium">Edge Width</span> = Transaction Volume
+                        </div>
+                        <div className="text-gray-600">
+                            <span className="font-medium">Clusters</span> = Disconnected Groups
+                        </div>
+                    </div>
                 </div>
             </div>
         </Panel>

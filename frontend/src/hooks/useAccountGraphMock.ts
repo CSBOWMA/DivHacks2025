@@ -8,6 +8,73 @@ interface UseAccountGraphMockParams {
     minTransactionAmount?: number;
 }
 
+// Helper to ensure cycle data is present
+const ensureCycleInData = (graphData: GraphData): GraphData => {
+    // If it's a cycle query and no cycles detected, force create one
+    if (graphData.query.is_cycle && graphData.cycles.length === 0) {
+        const cycleNodes = graphData.nodes.slice(0, Math.min(4, graphData.nodes.length));
+        const cycleNodeIds = cycleNodes.map(n => n.id);
+
+        // Create edges to form a cycle
+        const cycleEdges = [];
+        for (let i = 0; i < cycleNodeIds.length; i++) {
+            const source = cycleNodeIds[i];
+            const target = cycleNodeIds[(i + 1) % cycleNodeIds.length];
+
+            // Check if edge exists, if not create it
+            let edge = graphData.edges.find(e => e.source === source && e.target === target);
+            if (!edge) {
+                const transactionCount = Math.floor(Math.random() * 10) + 5;
+                const avgAmount = 1000 + Math.random() * 4000;
+                const totalAmount = avgAmount * transactionCount;
+
+                edge = {
+                    id: `edge_cycle_${i}`,
+                    source,
+                    target,
+                    total_amount: totalAmount,
+                    transaction_count: transactionCount,
+                    average_amount: avgAmount,
+                    min_amount: 100 + Math.random() * 500,
+                    max_amount: avgAmount * 2,
+                    first_transaction_date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
+                    last_transaction_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    transactions: Array.from({ length: Math.min(transactionCount, 5) }, (_, txIdx) => ({
+                        id: `txn_cycle_${i}_${txIdx}`,
+                        amount: avgAmount * (0.5 + Math.random()),
+                        date: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000).toISOString(),
+                        description: 'Cycle Transfer',
+                    })),
+                };
+
+                graphData.edges.push(edge);
+                cycleEdges.push(edge.id);
+            } else {
+                cycleEdges.push(edge.id);
+            }
+        }
+
+        // Add the cycle
+        graphData.cycles.push({
+            cycle_id: 'cycle_forced',
+            nodes: [...cycleNodeIds, cycleNodeIds[0]],
+            edges: cycleEdges,
+            total_amount: cycleEdges.reduce((sum, edgeId) => {
+                const edge = graphData.edges.find(e => e.id === edgeId);
+                return sum + (edge?.total_amount || 0);
+            }, 0),
+            cycle_length: cycleNodeIds.length,
+            net_flow: Math.random() * 1000 - 500,
+            is_suspicious: Math.random() > 0.5,
+            suspicious_reason: 'Circular transaction pattern detected',
+        });
+
+        graphData.summary.total_cycles = 1;
+    }
+
+    return graphData;
+};
+
 const generateMockGraphData = (
     startId: string,
     endId: string,
@@ -35,14 +102,14 @@ const generateMockGraphData = (
     });
 
     // Generate 2-3 intermediate nodes
-    const intermediateCount = isCycle ? 2 : Math.floor(Math.random() * 2) + 2; // 2-3 nodes
+    const intermediateCount = isCycle ? 3 : Math.floor(Math.random() * 2) + 2; // 2-3 nodes
 
     for (let i = 0; i < intermediateCount; i++) {
         const intermediateId = `acc_intermediate_${i + 1}`;
         nodes.push({
             id: intermediateId,
             name: `Transfer Account ${i + 1}`,
-            type: i % 2 === 0 ? 'Checking' : 'Savings',
+            type: ['Checking', 'Savings', 'Business', 'Investment'][Math.floor(Math.random() * 4)],
             balance: 10000 + Math.random() * 40000,
             currency: 'USD',
             customer_id: `cust_${String(i + 2).padStart(3, '0')}`,
@@ -239,16 +306,21 @@ export function useAccountGraphMock() {
         // Simulate API delay
         setTimeout(() => {
             try {
+                // Determine if it's a cycle
                 const isCycle = startAccountId === endAccountId;
                 console.log('Generating mock data, isCycle:', isCycle);
 
+                // Generate the mock data
                 const mockData = generateMockGraphData(
                     startAccountId,
                     endAccountId,
                     isCycle
                 );
 
-                setData(mockData);
+                // Ensure cycle data is present if needed
+                const enhancedData = ensureCycleInData(mockData);
+
+                setData(enhancedData);
                 setLoading(false);
                 console.log('Mock data set successfully');
             } catch (err) {

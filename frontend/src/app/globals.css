@@ -24,3 +24,60 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Existing styles... */
+
+/* Custom edge animations */
+.react-flow__edge-path {
+    transition: stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
+}
+
+.react-flow__edge.animated path {
+    stroke-dasharray: 5;
+    animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+    to {
+        stroke-dashoffset: -10;
+    }
+}
+
+/* Node hover effects */
+.react-flow__node {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Better handle visibility */
+.react-flow__handle {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.react-flow__node:hover .react-flow__handle {
+    opacity: 1;
+}
+
+/* Smooth panning */
+.react-flow__renderer {
+    transition: transform 0.1s ease-out;
+}
+
+/* Custom scrollbar for sidebars */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

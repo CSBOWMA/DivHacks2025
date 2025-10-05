@@ -1,3 +1,14 @@
+
+export type GraphAnalysisType = 'path' | 'cycle' | 'network' | 'community';
+
+export interface GraphQuery {
+    start_account_id: string;
+    end_account_id: string;
+    max_depth: number;
+    is_cycle: boolean;
+    analysis_type?: GraphAnalysisType;
+}
+
 export interface GraphNode {
     id: string;
     name: string;
