@@ -14,13 +14,14 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - db_data:/var/lib/postgresql/data
+      #- db_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U divhack_user -d divhacks_db -h localhost || exit 1" ]
+      test: [ "CMD-SHELL", "pg_isready -U divhack_user -d divhacks_db -h db || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 60s
+
     networks:
       - divhacks_network   # ✅ THIS IS REQUIRED
 
@@ -91,11 +92,13 @@ services:
         condition: service_healthy
     networks:
       - divhacks_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    environment:
+      - PYTHONPATH=/app
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=divhacks_db
+      - DB_USER=divhack_user
+      - DB_PASSWORD=divhacks2025
 
   frontend:
     build:

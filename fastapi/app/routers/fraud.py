@@ -2,9 +2,13 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 import sys
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
+# Ensure parent path is accessible (optional depending on project structure)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from app.database.db_init import get_db_connection
+
+from app.database.db_init import get_db_connection  # Uses env vars
 
 router = APIRouter(prefix="/fraud", tags=["fraud"])
 
@@ -13,22 +17,9 @@ router = APIRouter(prefix="/fraud", tags=["fraud"])
 def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: float = 0):
     """
     Detect circular money flows starting from a given account using graph traversal.
-
-    Traverses the transfer graph using recursive CTE to find cycles where money
-    returns to the origin account through intermediary accounts.
-
-    Args:
-        account_id: The account ID to check for circular flows
-        max_depth: Maximum chain length to detect (default 5)
-        min_amount: Minimum transaction amount to consider (default 0)
-
-    Returns:
-        List of circular transfer chains with amounts and participants
     """
-
     query = """
     WITH RECURSIVE transfer_chain AS (
-        -- Base case: all transfers from the starting account
         SELECT
             t.id,
             t.account_id,
@@ -48,7 +39,6 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
 
         UNION ALL
 
-        -- Recursive case: follow the chain through the graph
         SELECT
             t.id,
             t.account_id,
@@ -65,7 +55,7 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
         INNER JOIN transfer_chain tc ON t.account_id = tc.payer_id
         WHERE
             tc.depth < %s
-            AND NOT (t.account_id = ANY(tc.path))  -- Prevent revisiting nodes
+            AND NOT (t.account_id = ANY(tc.path))
             AND t.amount >= %s
             AND t.status = 'completed'
     )
@@ -78,7 +68,7 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
         array_agg(description) as descriptions,
         MAX(running_total) as total_amount
     FROM transfer_chain
-    WHERE payer_id = %s  -- Circular: cycle back to starting account
+    WHERE payer_id = %s
     GROUP BY path, payer_id, transfer_path, depth
     ORDER BY total_amount DESC, depth
     LIMIT 100;
@@ -86,38 +76,38 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
 
     try:
         with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(query, (account_id, min_amount, max_depth, min_amount, account_id))
-            rows = cur.fetchall()
+            with conn.cursor() as cur:
+                cur.execute(query, (account_id, min_amount, max_depth, min_amount, account_id))
+                rows = cur.fetchall()
 
-            if not rows:
+                if not rows:
+                    return {
+                        "account_id": account_id,
+                        "circular_flows_detected": False,
+                        "count": 0,
+                        "chains": []
+                    }
+
+                chains = []
+                for row in rows:
+                    full_path, transfer_path, depth, amounts, dates, descriptions, total_amount = row
+                    chains.append({
+                        "chain_length": depth,
+                        "account_path": full_path,
+                        "transfer_ids": transfer_path,
+                        "amounts": [float(a or 0.0) for a in amounts],
+                        "dates": [str(d) if d else None for d in dates],
+                        "descriptions": descriptions,
+                        "total_amount": float(total_amount or 0.0)
+                    })
+
                 return {
                     "account_id": account_id,
-                    "circular_flows_detected": False,
-                    "count": 0,
-                    "chains": []
+                    "circular_flows_detected": True,
+                    "count": len(chains),
+                    "chains": chains,
+                    "risk_level": "HIGH" if len(chains) > 0 else "LOW"
                 }
-
-            chains = []
-            for row in rows:
-                full_path, transfer_path, depth, amounts, dates, descriptions, total_amount = row
-                chains.append({
-                    "chain_length": depth,
-                    "account_path": full_path,
-                    "transfer_ids": transfer_path,
-                    "amounts": [float(amt) if amt else 0.0 for amt in amounts],
-                    "total_amount": float(total_amount) if total_amount else 0.0,
-                    "dates": [str(d) if d else None for d in dates],
-                    "descriptions": descriptions
-                })
-
-            return {
-                "account_id": account_id,
-                "circular_flows_detected": True,
-                "count": len(chains),
-                "chains": chains,
-                "risk_level": "HIGH" if len(chains) > 0 else "LOW"
-            }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -127,18 +117,9 @@ def detect_circular_transfers(account_id: str, max_depth: int = 5, min_amount: f
 def scan_all_accounts(max_depth: int = 5, min_amount: float = 0, limit: int = 100):
     """
     Scan all accounts for circular transfer fraud.
-
-    Returns accounts that have circular money flows detected.
-
-    Query parameters:
-    - max_depth: Maximum chain length (default 5)
-    - min_amount: Minimum transaction amount (default 0)
-    - limit: Max number of fraudulent accounts to return (default 100)
     """
-
     query = """
     WITH RECURSIVE transfer_chain AS (
-        -- Base case: all transfers
         SELECT
             t.id,
             t.account_id,
@@ -156,7 +137,6 @@ def scan_all_accounts(max_depth: int = 5, min_amount: float = 0, limit: int = 10
 
         UNION ALL
 
-        -- Recursive case: follow the chain
         SELECT
             t.id,
             t.account_id,
@@ -182,7 +162,7 @@ def scan_all_accounts(max_depth: int = 5, min_amount: float = 0, limit: int = 10
         SUM(running_total) as total_circular_amount,
         MAX(depth) as max_chain_length
     FROM transfer_chain
-    WHERE payer_id = origin_account  -- Circular: back to origin
+    WHERE payer_id = origin_account
     GROUP BY origin_account
     ORDER BY circular_count DESC, total_circular_amount DESC
     LIMIT %s;
@@ -190,25 +170,26 @@ def scan_all_accounts(max_depth: int = 5, min_amount: float = 0, limit: int = 10
 
     try:
         with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(query, (min_amount, max_depth, min_amount, limit))
-            rows = cur.fetchall()
+            with conn.cursor() as cur:
+                cur.execute(query, (min_amount, max_depth, min_amount, limit))
+                rows = cur.fetchall()
 
-            fraudulent_accounts = []
-            for row in rows:
-                fraudulent_accounts.append({
-                    "account_id": row[0],
-                    "circular_flow_count": row[1],
-                    "total_circular_amount": float(row[2]) if row[2] else 0.0,
-                    "max_chain_length": row[3],
-                    "risk_level": "HIGH" if row[1] > 2 else "MEDIUM"
-                })
+                fraudulent_accounts = []
+                for row in rows:
+                    account_id, count, total_amount, chain_length = row
+                    fraudulent_accounts.append({
+                        "account_id": account_id,
+                        "circular_flow_count": count,
+                        "total_circular_amount": float(total_amount or 0.0),
+                        "max_chain_length": chain_length,
+                        "risk_level": "HIGH" if count > 2 else "MEDIUM"
+                    })
 
-            return {
-                "scanned": True,
-                "fraudulent_accounts_found": len(fraudulent_accounts),
-                "accounts": fraudulent_accounts
-            }
+                return {
+                    "scanned": True,
+                    "fraudulent_accounts_found": len(fraudulent_accounts),
+                    "accounts": fraudulent_accounts
+                }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

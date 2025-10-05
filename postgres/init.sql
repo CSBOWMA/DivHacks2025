@@ -1,27 +1,108 @@
--- Create the main database for your hackathon project
-CREATE DATABASE divhacks_db;
+-- ===============================================
+-- PostgreSQL Initialization Script
+-- ===============================================
+-- Note: The database and user are already created by the Dockerfile ENV variables,
+-- so we just need to set up the schema and permissions.
 
--- Create a dedicated user for your application to connect with
--- It's good practice to not use the default 'postgres' user for applications.
--- The password 'supersecretpassword' should match the POSTGRES_PASSWORD in your Dockerfile/docker-compose.yml
-CREATE USER divhack_user WITH PASSWORD 'divhacks2025';
+-- Ensure we're connected to the correct database
+\connect divhacks_db;
 
--- Grant all privileges on the database to your application user
-GRANT ALL PRIVILEGES ON DATABASE divhacks_db TO divhack_user;
+-- ===============================================
+-- TABLES
+-- ===============================================
 
--- Connect to the newly created database so subsequent commands operate within it
-\c divhacks_db;
-
--- Create a simple table for demonstration/initial schema
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- Customers
+CREATE TABLE IF NOT EXISTS customers (
+    id TEXT PRIMARY KEY,
+    first_name TEXT,
+    last_name TEXT,
+    street_name TEXT,
+    street_number TEXT,
+    city TEXT,
+    state TEXT,
+    zip TEXT
 );
 
--- Insert some initial data into the users table
-INSERT INTO users (name, email) VALUES
-('Alice Wonderland', 'alice@example.com'),
-('Bob The Builder', 'bob@example.com')
-ON CONFLICT (email) DO NOTHING; -- Avoid errors if running init.sql multiple times accidentally
+-- Accounts
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT REFERENCES customers(id),
+    type TEXT,
+    nickname TEXT,
+    balance NUMERIC,
+    rewards NUMERIC
+);
+
+-- Merchants
+CREATE TABLE IF NOT EXISTS merchants (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    street_name TEXT,
+    street_number TEXT,
+    city TEXT,
+    state TEXT,
+    zip TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION
+);
+
+-- Bills
+CREATE TABLE IF NOT EXISTS bills (
+    id TEXT PRIMARY KEY,
+    account_id TEXT REFERENCES accounts(id),
+    creation_date TIMESTAMP,
+    payment_date TIMESTAMP,
+    payment_amount NUMERIC
+);
+
+-- Deposits
+CREATE TABLE IF NOT EXISTS deposits (
+    id TEXT PRIMARY KEY,
+    account_id TEXT REFERENCES accounts(id),
+    type TEXT,
+    amount NUMERIC,
+    payee_id TEXT,
+    description TEXT,
+    medium TEXT,
+    transaction_date TIMESTAMP,
+    status TEXT
+);
+
+-- Withdrawals
+CREATE TABLE IF NOT EXISTS withdrawals (
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    amount NUMERIC,
+    payer_id TEXT,
+    description TEXT,
+    medium TEXT,
+    transaction_date TIMESTAMP,
+    status TEXT
+);
+
+-- Transfers
+CREATE TABLE IF NOT EXISTS transfers (
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    amount NUMERIC,
+    payer_id TEXT REFERENCES accounts(id),
+    payee_id TEXT REFERENCES accounts(id),
+    description TEXT,
+    medium TEXT,
+    transaction_date TIMESTAMP,
+    status TEXT
+);
+
+-- ===============================================
+-- PERMISSIONS
+-- ===============================================
+
+-- Grant all privileges on tables to the application user
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO divhack_user;
+
+-- Grant usage and select on sequences (if any are created in the future)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO divhack_user;
+
+-- Set default privileges for future tables
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO divhack_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO divhack_user;
