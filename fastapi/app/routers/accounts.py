@@ -308,6 +308,94 @@ def get_account_transactions(
         queries.append(query)
         params_list.append(params)
 
+    # Build count query for total
+    count_queries = []
+    count_params_list = []
+
+    # Count deposits
+    if not transaction_type or transaction_type == "deposit":
+        count_query = "SELECT COUNT(*) FROM deposits WHERE account_id = %s"
+        count_params = [account_id]
+
+        if date_after:
+            count_query += " AND transaction_date >= %s"
+            count_params.append(date_after)
+
+        if date_before:
+            count_query += " AND transaction_date <= %s"
+            count_params.append(date_before)
+
+        if min_amount is not None:
+            count_query += " AND amount >= %s"
+            count_params.append(min_amount)
+
+        if max_amount is not None:
+            count_query += " AND amount <= %s"
+            count_params.append(max_amount)
+
+        if status:
+            count_query += " AND status = %s"
+            count_params.append(status)
+
+        count_queries.append(count_query)
+        count_params_list.append(count_params)
+
+    # Count withdrawals
+    if not transaction_type or transaction_type == "withdrawal":
+        count_query = "SELECT COUNT(*) FROM withdrawals WHERE account_id = %s"
+        count_params = [account_id]
+
+        if date_after:
+            count_query += " AND transaction_date >= %s"
+            count_params.append(date_after)
+
+        if date_before:
+            count_query += " AND transaction_date <= %s"
+            count_params.append(date_before)
+
+        if min_amount is not None:
+            count_query += " AND amount >= %s"
+            count_params.append(min_amount)
+
+        if max_amount is not None:
+            count_query += " AND amount <= %s"
+            count_params.append(max_amount)
+
+        if status:
+            count_query += " AND status = %s"
+            count_params.append(status)
+
+        count_queries.append(count_query)
+        count_params_list.append(count_params)
+
+    # Count transfers
+    if not transaction_type or transaction_type == "transfer":
+        count_query = "SELECT COUNT(*) FROM transfers WHERE account_id = %s"
+        count_params = [account_id]
+
+        if date_after:
+            count_query += " AND transaction_date >= %s"
+            count_params.append(date_after)
+
+        if date_before:
+            count_query += " AND transaction_date <= %s"
+            count_params.append(date_before)
+
+        if min_amount is not None:
+            count_query += " AND amount >= %s"
+            count_params.append(min_amount)
+
+        if max_amount is not None:
+            count_query += " AND amount <= %s"
+            count_params.append(max_amount)
+
+        if status:
+            count_query += " AND status = %s"
+            count_params.append(status)
+
+        count_queries.append(count_query)
+        count_params_list.append(count_params)
+
     # Combine all queries with UNION ALL
     combined_query = " UNION ALL ".join(queries)
     combined_query += " ORDER BY transaction_date DESC LIMIT %s OFFSET %s"
@@ -321,6 +409,14 @@ def get_account_transactions(
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
+
+            # Get total count
+            total_count = 0
+            for count_query, count_params in zip(count_queries, count_params_list):
+                cur.execute(count_query, count_params)
+                total_count += cur.fetchone()[0]
+
+            # Get paginated results
             cur.execute(combined_query, all_params)
             rows = cur.fetchall()
 
@@ -340,7 +436,8 @@ def get_account_transactions(
 
             return {
                 "account_id": account_id,
-                "count": len(transactions),
+                "returned": len(transactions),
+                "total": total_count,
                 "limit": limit,
                 "offset": offset,
                 "transactions": transactions
