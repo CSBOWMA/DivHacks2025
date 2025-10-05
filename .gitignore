@@ -9,3 +9,4 @@ fastapi/.env*
 #environment
 .env
 .requirements.txt
+__pycache__/
