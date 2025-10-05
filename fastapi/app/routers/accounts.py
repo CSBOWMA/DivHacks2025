@@ -545,3 +545,129 @@ def get_recent_activity(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.get("/{account_id}/transaction-summary")
+def get_transaction_summary(account_id: str):
+    """
+    Get aggregated transaction summary for a single account.
+
+    Returns all transactions with appropriate type labels and calculates metrics
+    including total deposits, withdrawals, transfers, and balance verification.
+    """
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Get account balance
+            cur.execute("SELECT balance FROM accounts WHERE id = %s", (account_id,))
+            account_row = cur.fetchone()
+
+            if not account_row:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            actual_balance = float(account_row[0]) if account_row[0] else 0.0
+
+            # Get all transactions with proper labeling
+            query = """
+            (
+                SELECT
+                    'deposit' as type,
+                    id,
+                    account_id,
+                    amount,
+                    transaction_date as date,
+                    description,
+                    status
+                FROM deposits
+                WHERE account_id = %s
+            )
+            UNION ALL
+            (
+                SELECT
+                    'withdrawal' as type,
+                    id,
+                    account_id,
+                    amount,
+                    transaction_date as date,
+                    description,
+                    status
+                FROM withdrawals
+                WHERE account_id = %s
+            )
+            UNION ALL
+            (
+                SELECT
+                    'transfer_out' as type,
+                    id,
+                    account_id,
+                    amount,
+                    transaction_date as date,
+                    description,
+                    status
+                FROM transfers
+                WHERE account_id = %s
+            )
+            ORDER BY date DESC;
+            """
+
+            cur.execute(query, (account_id, account_id, account_id))
+            rows = cur.fetchall()
+
+            # Process transactions and calculate metrics
+            transactions = []
+            total_deposits = 0.0
+            total_withdrawals = 0.0
+            total_transfers_out = 0.0
+
+            for row in rows:
+                txn_type, txn_id, acc_id, amount, date, description, status = row
+                amount_float = float(amount) if amount else 0.0
+
+                transactions.append({
+                    "id": txn_id,
+                    "account_id": acc_id,
+                    "type": txn_type,
+                    "amount": amount_float,
+                    "date": str(date) if date else None,
+                    "description": description,
+                    "status": status
+                })
+
+                # Calculate totals (only for executed/completed transactions)
+                if status in ['executed', 'completed']:
+                    if txn_type == 'deposit':
+                        total_deposits += amount_float
+                    elif txn_type == 'withdrawal':
+                        total_withdrawals += amount_float
+                    elif txn_type == 'transfer_out':
+                        total_transfers_out += amount_float
+
+            # Calculate balance from transactions
+            calculated_balance = total_deposits - total_withdrawals - total_transfers_out
+            discrepancy = actual_balance - calculated_balance
+            has_discrepancy = abs(discrepancy) > 0.01  # Allow for floating point errors
+
+            summary = {
+                "total_deposits": total_deposits,
+                "total_withdrawals": total_withdrawals,
+                "total_transfers_in": 0.0,  # Would need to query transfers TO this account
+                "total_transfers_out": total_transfers_out,
+                "calculated_balance": calculated_balance,
+                "actual_balance": actual_balance,
+                "discrepancy": discrepancy,
+                "has_discrepancy": has_discrepancy
+            }
+
+            return {
+                "account_id": account_id,
+                "transactions": transactions,
+                "summary": summary,
+                "transaction_count": len(transactions)
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
