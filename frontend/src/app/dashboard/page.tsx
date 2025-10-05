@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AccountsList from '@/components/AccountsList';
 import AnalyticsToolSwitcher, { AnalyticsTool } from '@/components/AnalyticsToolSwitcher';
 import AccountGraphAnalytics from '@/components/AccountGraphAnalytics';
+import ForecastPanel from '@/components/ForecastPanel';
 
 export default function DashboardPage() {
     const [currentTool, setCurrentTool] = useState<AnalyticsTool>('accounts');
@@ -20,6 +21,8 @@ export default function DashboardPage() {
                 );
             case 'insights':
                 return <AccountGraphAnalytics />;
+            case 'forecast':
+                return <ForecastPanel />;
             case 'reports':
                 return (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
