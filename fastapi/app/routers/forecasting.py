@@ -56,7 +56,7 @@ def forecast_account_balance(
                     SUM(amount) as net_flow
                 FROM deposits
                 WHERE account_id = %s
-                    AND status = 'completed'
+                    AND status = 'executed'
                     AND transaction_date IS NOT NULL
                 GROUP BY DATE(transaction_date)
 
@@ -67,7 +67,7 @@ def forecast_account_balance(
                     -SUM(amount) as net_flow
                 FROM withdrawals
                 WHERE account_id = %s
-                    AND status = 'completed'
+                    AND status = 'executed'
                     AND transaction_date IS NOT NULL
                 GROUP BY DATE(transaction_date)
 
@@ -78,7 +78,7 @@ def forecast_account_balance(
                     -SUM(amount) as net_flow
                 FROM transfers
                 WHERE account_id = %s
-                    AND status = 'completed'
+                    AND status = 'executed'
                     AND transaction_date IS NOT NULL
                 GROUP BY DATE(transaction_date)
             )
