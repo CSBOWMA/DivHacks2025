@@ -22,6 +22,20 @@ services:
       timeout: 5s
       retries: 5
 
+  nessie_ingest:
+    build:
+      context: ./fastapi
+    container_name: divhacks_nessie_ingest
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - divhacks_network
+    command: >
+      sh -c "echo '⏳ Waiting for DB...' && sleep 5 &&
+             python3 -m fastapi.app.database.nessie_ingest"
+    restart: "no"   # Only runs once and exits
+
   neo4j:
     build:
       context: ./neo4j
@@ -67,26 +81,25 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
     container_name: divhacks_frontend
     restart: always
     ports:
       - "3000:3000"
+    env_file:
+      - ./env.env
     environment:
-      # Read from frontend/.env and pass to container
-      NEXT_PUBLIC_AUTH0_DOMAIN: ${NEXT_PUBLIC_AUTH0_DOMAIN}
-      NEXT_PUBLIC_AUTH0_CLIENT_ID: ${NEXT_PUBLIC_AUTH0_CLIENT_ID}
-      NEXT_PUBLIC_AUTH0_AUDIENCE: ${NEXT_PUBLIC_AUTH0_AUDIENCE}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: production
     depends_on:
       - fastapi
     networks:
       - divhacks_network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
+
 
 volumes:
   db_data:
