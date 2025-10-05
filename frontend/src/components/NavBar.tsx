@@ -25,7 +25,7 @@ export default function NavBar() {
             <nav className="bg-gray-800 text-white p-4">
                 <div className="container mx-auto flex justify-between items-center">
                     <Link href="/" className="text-xl font-bold">
-                        Financial Analytics
+                        Fraudsight
                     </Link>
                     <div className="text-sm">Loading...</div>
                 </div>
@@ -37,7 +37,7 @@ export default function NavBar() {
         <nav className="bg-gray-800 text-white p-4">
             <div className="container mx-auto flex justify-between items-center">
                 <Link href="/" className="text-xl font-bold hover:text-blue-300 transition-colors">
-                    Financial Analytics
+                    Fraud and Financial Analytics
                 </Link>
 
                 <div className="flex items-center gap-4">
