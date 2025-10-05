@@ -1,4 +1,4 @@
-**fraudsight.biz**
+##**fraudsight.biz**
 
 ## Inspiration
 Financial fraud costs businesses billions annually, while many are left struggling with cash flow prediction and basic financial planning. We saw an opportunity to combine fraud detection, predictive analytics, and business intelligence into a single, intuitive platform. The vision was simple: _give businesses the foresight to prevent fraud before it happens and the insight to predict their financial future._
