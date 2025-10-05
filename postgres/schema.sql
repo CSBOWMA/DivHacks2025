@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS customers (
 -- Accounts
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
-    customer_id TEXT REFERENCES customers(id),
+    customer_id TEXT,
     type TEXT,
     nickname TEXT,
     balance NUMERIC,
