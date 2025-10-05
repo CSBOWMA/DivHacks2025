@@ -106,7 +106,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ./env.env
+      - ./frontend/.env
     environment:
       NODE_ENV: production
     depends_on:
