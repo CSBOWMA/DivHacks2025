@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
     customer_id TEXT REFERENCES customers(id),
-    type TEXT,
+    account_type TEXT,
     nickname TEXT,
     balance NUMERIC,
     rewards NUMERIC
@@ -27,21 +27,17 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE TABLE IF NOT EXISTS bills (
     id TEXT PRIMARY KEY,
     account_id TEXT REFERENCES accounts(id),
-    nickname TEXT,
     creation_date TIMESTAMP,
     payment_date TIMESTAMP,
-    upcoming_payment_date TIMESTAMP,
-    recurring_date INTEGER,
     payment_amount NUMERIC
 );
 
 -- Deposits
 CREATE TABLE IF NOT EXISTS deposits (
     id TEXT PRIMARY KEY,
-    account_id TEXT REFERENCES accounts(id),
-    type TEXT,
+    deposit_type TEXT,
     amount NUMERIC,
-    payee_id TEXT,
+    payee_id TEXT REFERENCES accounts(id),
     description TEXT,
     medium TEXT,
     transaction_date TIMESTAMP,
@@ -64,24 +60,21 @@ CREATE TABLE IF NOT EXISTS merchants (
 -- Withdrawals
 CREATE TABLE IF NOT EXISTS withdrawals (
     id TEXT PRIMARY KEY,
-    account_id TEXT REFERENCES accounts(id),
     type TEXT,
     amount NUMERIC,
-    payer_id TEXT,
-    payee_id TEXT,
+    payer_id TEXT REFERENCES accounts(id),
     description TEXT,
     medium TEXT,
     transaction_date TIMESTAMP,
     status TEXT
 );
 
--- Transfers
 CREATE TABLE IF NOT EXISTS transfers (
     id TEXT PRIMARY KEY,
-    account_id TEXT REFERENCES accounts(id),
     type TEXT,
     amount NUMERIC,
-    payer_id TEXT,
+    payer_id TEXT REFERENCES accounts(id),
+    payee_id TEXT REFERENCES accounts(id),
     description TEXT,
     medium TEXT,
     transaction_date TIMESTAMP,

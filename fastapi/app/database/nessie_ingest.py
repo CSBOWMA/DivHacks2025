@@ -137,18 +137,14 @@ def ingest_bills(conn):
         try:
             cur.execute("""
                 INSERT INTO bills
-                (id, account_id, nickname, creation_date, payment_date, upcoming_payment_date,
-                 recurring_date, payment_amount)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (id, account_id, creation_date, payment_date, payment_amount)
+                VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 b.get("_id"),
                 b.get("account_id"),
-                b.get("nickname"),
                 b.get("creation_date"),
                 b.get("payment_date"),
-                b.get("upcoming_payment_date"),
-                b.get("recurring_date"),
                 b.get("payment_amount")
             ))
             inserted += 1
@@ -166,6 +162,7 @@ def ingest_deposits(conn):
     cur = conn.cursor()
     loaded = 0
     skipped = 0
+
     for d in data:
         try:
             cur.execute("""
@@ -176,21 +173,23 @@ def ingest_deposits(conn):
                 ON CONFLICT (id) DO NOTHING
             """, (
                 d["_id"],
-                d.get("account_id"),
-                d.get("type"),
+                d.get("account_id"),   # ← new field to match DB
+                d.get("type"),         # ← renamed from deposit_type
                 d.get("amount"),
                 d.get("payee_id"),
                 d.get("description"),
                 d.get("medium"),
                 d.get("transaction_date"),
-                d.get("status")
+                d.get("status"),
             ))
             loaded += 1
-        except (psycopg2.Error, ValueError):
+        except (psycopg2.Error, ValueError) as e:
             skipped += 1
             conn.rollback()
+
     conn.commit()
-    print(f"loaded {loaded} deposits (skipped {skipped})")
+    print(f"✅ loaded {loaded} deposits (skipped {skipped})")
+
 
 
 def ingest_withdrawals(conn):
@@ -203,17 +202,15 @@ def ingest_withdrawals(conn):
         try:
             cur.execute("""
                 INSERT INTO withdrawals
-                (id, account_id, type, amount, payer_id, payee_id,
+                (id, type, amount, payer_id,
                  description, medium, transaction_date, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 w["_id"],
-                w.get("account_id"),
                 w.get("type"),
                 w.get("amount"),
                 w.get("payer_id"),
-                w.get("payee_id"),
                 w.get("description"),
                 w.get("medium"),
                 w.get("transaction_date"),
@@ -233,31 +230,43 @@ def ingest_transfers(conn):
     cur = conn.cursor()
     loaded = 0
     skipped = 0
+
     for t in data:
+        raw_date = t.get("transaction_date")
+
+        # Fix malformed timestamps like "2025-010-4"
+        if isinstance(raw_date, str):
+            raw_date = raw_date.replace("-010-", "-10-")
+            parts = raw_date.split("-")
+            if len(parts) == 3 and len(parts[2]) == 1:
+                raw_date = f"{parts[0]}-{parts[1]}-0{parts[2]}"
+
         try:
             cur.execute("""
                 INSERT INTO transfers
-                (id, account_id, type, amount, payer_id,
-                 description, medium, transaction_date, status)
+                (id, type, amount, payer_id, payee_id,
+                description, medium, transaction_date, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 t["_id"],
-                t.get("account_id"),
                 t.get("type"),
                 t.get("amount"),
                 t.get("payer_id"),
+                t.get("payee_id"),
                 t.get("description"),
                 t.get("medium"),
                 t.get("transaction_date"),
-                t.get("status")
+                t.get("status"),
             ))
             loaded += 1
-        except (psycopg2.Error, ValueError):
+        except (psycopg2.Error, ValueError) as e:
             skipped += 1
             conn.rollback()
+
     conn.commit()
-    print(f"loaded {loaded} transfers (skipped {skipped})")
+    print(f"✅ loaded {loaded} transfers (skipped {skipped})")
+
 
 
 # === MAIN ===
@@ -271,7 +280,9 @@ def ingest_all():
         ingest_merchants(conn)
         ingest_bills(conn)
         ingest_deposits(conn)
+        print("✅ Finished deposits, moving to withdrawals")
         ingest_withdrawals(conn)
+        print("✅ Finished withdrawals, moving to transfers")
         ingest_transfers(conn)
 
     print("All Nessie data pulled and stored in PostgreSQL")
