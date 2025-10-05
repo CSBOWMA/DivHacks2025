@@ -4,13 +4,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface Account {
     id: string;
-    name: string;
+    customer_id: string;
     type: string;
+    name: string;
+    nickname: string | null;
     balance: number;
+    rewards: number;
     currency: string;
     status: string;
-    created_at: string;
-    customer_id?: string;
+    created_at: string | null;
 }
 
 export interface PaginationInfo {
@@ -90,7 +92,8 @@ export function useAccounts({
             if (finalMinBalance !== undefined) params.append('min_balance', finalMinBalance.toString());
             if (finalMaxBalance !== undefined) params.append('max_balance', finalMaxBalance.toString());
 
-            const endpoint = `${API_URL}/api/accounts?${params.toString()}`;
+            // Updated endpoint - removed /api prefix to match FastAPI router
+            const endpoint = `${API_URL}/accounts?${params.toString()}`;
 
             console.log('Fetching accounts from:', endpoint);
 
@@ -102,10 +105,12 @@ export function useAccounts({
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const result = await response.json();
+            console.log('Received data:', result);
             setData(result);
             return result;
         } catch (err) {

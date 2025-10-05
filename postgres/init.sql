@@ -1,10 +1,7 @@
 -- ===============================================
 -- PostgreSQL Initialization Script
 -- ===============================================
--- Note: The database and user are already created by the Dockerfile ENV variables,
--- so we just need to set up the schema and permissions.
 
--- Ensure we're connected to the correct database
 \connect divhacks_db;
 
 -- ===============================================
@@ -46,16 +43,19 @@ CREATE TABLE IF NOT EXISTS merchants (
     lng DOUBLE PRECISION
 );
 
--- Bills
+-- Bills (Fixed: added payee, status, fixed NULL syntax, removed trailing comma)
 CREATE TABLE IF NOT EXISTS bills (
     id TEXT PRIMARY KEY,
     account_id TEXT REFERENCES accounts(id),
     creation_date TIMESTAMP,
+    payment_amount NUMERIC,
     payment_date TIMESTAMP,
-    payment_amount NUMERIC
+    recurring_date NUMERIC,
+    payee TEXT,
+    status TEXT
 );
 
--- Deposits
+-- Deposits (Fixed: added account_id, removed foreign key from payee_id)
 CREATE TABLE IF NOT EXISTS deposits (
     id TEXT PRIMARY KEY,
     account_id TEXT REFERENCES accounts(id),
@@ -68,9 +68,10 @@ CREATE TABLE IF NOT EXISTS deposits (
     status TEXT
 );
 
--- Withdrawals
+-- Withdrawals (Fixed: added account_id)
 CREATE TABLE IF NOT EXISTS withdrawals (
     id TEXT PRIMARY KEY,
+    account_id TEXT REFERENCES accounts(id),
     type TEXT,
     amount NUMERIC,
     payer_id TEXT,
@@ -80,9 +81,10 @@ CREATE TABLE IF NOT EXISTS withdrawals (
     status TEXT
 );
 
--- Transfers
+-- Transfers (Fixed: added account_id)
 CREATE TABLE IF NOT EXISTS transfers (
     id TEXT PRIMARY KEY,
+    account_id TEXT REFERENCES accounts(id),
     type TEXT,
     amount NUMERIC,
     payer_id TEXT REFERENCES accounts(id),
@@ -97,12 +99,7 @@ CREATE TABLE IF NOT EXISTS transfers (
 -- PERMISSIONS
 -- ===============================================
 
--- Grant all privileges on tables to the application user
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO divhack_user;
-
--- Grant usage and select on sequences (if any are created in the future)
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO divhack_user;
-
--- Set default privileges for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO divhack_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO divhack_user;

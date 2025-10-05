@@ -8,12 +8,12 @@ app = FastAPI(title="OAuth Test App", version="1.0.0")
 add_middleware(app)
 
 # Include routers
-app.include_router(health.router, prefix="/api")
-app.include_router(auth.router, prefix="/api")
-app.include_router(fraud.router, prefix="/api")
-app.include_router(accounts.router, prefix="/api")
-app.include_router(forecasting.router, prefix="/api")
-app.include_router(graph.router, prefix="/api")
+app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(fraud.router)
+app.include_router(accounts.router)
+app.include_router(forecasting.router)
+app.include_router(graph.router)
 
 
 @app.get("/health")

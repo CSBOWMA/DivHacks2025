@@ -17,122 +17,106 @@ def init_schema():
     cur = conn.cursor()
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS customers (
-        id TEXT PRIMARY KEY,
-        first_name TEXT,
-        last_name TEXT,
-        street_name TEXT,
-        street_number TEXT,
-        city TEXT,
-        state TEXT,
-        zip TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
+        CREATE TABLE IF NOT EXISTS customers (
+            id TEXT PRIMARY KEY,
+            first_name TEXT,
+            last_name TEXT,
+            street_name TEXT,
+            street_number TEXT,
+            city TEXT,
+            state TEXT,
+            zip TEXT
+        );
     """)
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS accounts (
-        id TEXT PRIMARY KEY,
-        customer_id TEXT,
-        type TEXT,
-        nickname TEXT,
-        balance NUMERIC,
-        rewards NUMERIC,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_accounts_customer ON accounts(customer_id);
+        CREATE TABLE IF NOT EXISTS accounts (
+            id TEXT PRIMARY KEY,
+            customer_id TEXT REFERENCES customers(id),
+            type TEXT,
+            nickname TEXT,
+            balance NUMERIC,
+            rewards NUMERIC
+        );
     """)
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS merchants (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        street_name TEXT,
-        street_number TEXT,
-        city TEXT,
-        state TEXT,
-        zip TEXT,
-        lat NUMERIC,
-        lng NUMERIC,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
+        CREATE TABLE IF NOT EXISTS merchants (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            street_name TEXT,
+            street_number TEXT,
+            city TEXT,
+            state TEXT,
+            zip TEXT,
+            lat DOUBLE PRECISION,
+            lng DOUBLE PRECISION
+        );
     """)
 
+    # Fixed: added payee, status, fixed field order
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS bills (
-        id TEXT PRIMARY KEY,
-        account_id TEXT,
-        nickname TEXT,
-        creation_date TIMESTAMP,
-        payment_date TIMESTAMP,
-        upcoming_payment_date TIMESTAMP,
-        recurring_date INTEGER,
-        payment_amount NUMERIC,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_bills_account ON bills(account_id);
+        CREATE TABLE IF NOT EXISTS bills (
+            id TEXT PRIMARY KEY,
+            account_id TEXT REFERENCES accounts(id),
+            creation_date TIMESTAMP,
+            payment_amount NUMERIC,
+            payment_date TIMESTAMP,
+            recurring_date NUMERIC,
+            payee TEXT,
+            status TEXT
+        );
     """)
 
+    # Fixed: added account_id
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS deposits (
-        id TEXT PRIMARY KEY,
-        account_id TEXT,
-        type TEXT,
-        amount NUMERIC,
-        payee_id TEXT,
-        description TEXT,
-        medium TEXT,
-        transaction_date TIMESTAMP,
-        status TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_deposits_account ON deposits(account_id);
-    CREATE INDEX IF NOT EXISTS idx_deposits_date ON deposits(transaction_date);
+        CREATE TABLE IF NOT EXISTS deposits (
+            id TEXT PRIMARY KEY,
+            account_id TEXT REFERENCES accounts(id),
+            type TEXT,
+            amount NUMERIC,
+            payee_id TEXT,
+            description TEXT,
+            medium TEXT,
+            transaction_date TIMESTAMP,
+            status TEXT
+        );
     """)
 
+    # Fixed: added account_id
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS withdrawals (
-        id TEXT PRIMARY KEY,
-        account_id TEXT,
-        type TEXT,
-        amount NUMERIC,
-        payer_id TEXT,
-        payee_id TEXT,
-        description TEXT,
-        medium TEXT,
-        transaction_date TIMESTAMP,
-        status TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_withdrawals_account ON withdrawals(account_id);
-    CREATE INDEX IF NOT EXISTS idx_withdrawals_date ON withdrawals(transaction_date);
+        CREATE TABLE IF NOT EXISTS withdrawals (
+            id TEXT PRIMARY KEY,
+            account_id TEXT REFERENCES accounts(id),
+            type TEXT,
+            amount NUMERIC,
+            payer_id TEXT,
+            description TEXT,
+            medium TEXT,
+            transaction_date TIMESTAMP,
+            status TEXT
+        );
     """)
 
+    # Fixed: added account_id
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS transfers (
-        id TEXT PRIMARY KEY,
-        account_id TEXT,
-        type TEXT,
-        amount NUMERIC,
-        payer_id TEXT,
-        description TEXT,
-        medium TEXT,
-        transaction_date TIMESTAMP,
-        status TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_transfers_account ON transfers(account_id);
-    CREATE INDEX IF NOT EXISTS idx_transfers_date ON transfers(transaction_date);
+        CREATE TABLE IF NOT EXISTS transfers (
+            id TEXT PRIMARY KEY,
+            account_id TEXT REFERENCES accounts(id),
+            type TEXT,
+            amount NUMERIC,
+            payer_id TEXT REFERENCES accounts(id),
+            payee_id TEXT REFERENCES accounts(id),
+            description TEXT,
+            medium TEXT,
+            transaction_date TIMESTAMP,
+            status TEXT
+        );
     """)
 
     conn.commit()
     conn.close()
-    print("PostgreSQL schema initialized")
+    print("✅ PostgreSQL schema initialized")
 
 @contextmanager
 def get_db_connection():

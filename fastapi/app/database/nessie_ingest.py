@@ -152,19 +152,19 @@ def ingest_bills(conn):
 
     for b in data:
         # check if account exists
-        cur.execute("SELECT 1 FROM accounts WHERE id = %s", (b.get("account_id"),))
+        cur.execute("SELECT 1 FROM accounts WHERE id = %s", (b.get("customer_id"),))
         if not cur.fetchone():
             skipped += 1
             continue
         try:
             cur.execute("""
                 INSERT INTO bills
-                (id, account_id, creation_date, payment_date, payment_amount)
+                (id, customer_id, creation_date, payment_date, payment_amount)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 b.get("_id"),
-                b.get("account_id"),
+                b.get("customer_id"),
                 b.get("creation_date"),
                 b.get("payment_date"),
                 b.get("payment_amount")

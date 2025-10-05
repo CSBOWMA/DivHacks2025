@@ -1,6 +1,7 @@
 'use client';
 
 import { useAccountTransactionsMock } from '@/hooks/useAccountTransactionsMock';
+import {sum} from "d3-array";
 
 interface Account {
     id: string;
@@ -125,10 +126,7 @@ export default function AccountDetailView({ account, onBack }: AccountDetailView
                             <div className="mt-3 p-3 bg-white/20 rounded-lg">
                                 <p className="text-sm font-medium">⚠️ Discrepancy Detected</p>
                                 <p className="text-2xl font-bold mt-1">
-                                    {formatCurrency(Math.abs(summary.discrepancy))}
-                                </p>
-                                <p className="text-xs mt-1 text-red-100">
-                                    {summary.discrepancy > 0 ? 'Over calculated' : 'Under calculated'}
+                                    {formatCurrency(Math.abs(summary.calculated_balance - account.balance))}
                                 </p>
                             </div>
                         ) : (
