@@ -56,6 +56,31 @@ def get_accounts(
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
+
+            # Get total count
+            count_query = "SELECT COUNT(*) FROM accounts WHERE 1=1"
+            count_params = []
+
+            if customer_id:
+                count_query += " AND customer_id = %s"
+                count_params.append(customer_id)
+
+            if account_type:
+                count_query += " AND type = %s"
+                count_params.append(account_type)
+
+            if min_balance is not None:
+                count_query += " AND balance >= %s"
+                count_params.append(min_balance)
+
+            if max_balance is not None:
+                count_query += " AND balance <= %s"
+                count_params.append(max_balance)
+
+            cur.execute(count_query, count_params)
+            total_count = cur.fetchone()[0]
+
+            # Get paginated results
             cur.execute(query, params)
             rows = cur.fetchall()
 
@@ -71,7 +96,8 @@ def get_accounts(
                 })
 
             return {
-                "count": len(accounts),
+                "returned": len(accounts),
+                "total": total_count,
                 "limit": limit,
                 "offset": offset,
                 "accounts": accounts
